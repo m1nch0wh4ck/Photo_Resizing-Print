@@ -8,8 +8,15 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const fmtSize = (n) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`);
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const ACCEPT = /\.(png|jpe?g|webp)$/i;
+const FOLDER = "NAImage_Cleaner"; // ZIP 을 풀면 생기는 폴더 이름
+// 휴대폰·태블릿(터치)에서만 "전체 공유" 버튼을 보인다. PC는 ZIP·개별 받기로 충분
+const TOUCH = matchMedia("(any-pointer: coarse)").matches;
+const CAN_SHARE_FILES = (() => {
+  try { return !!navigator.canShare?.({ files: [new File([new Uint8Array(1)], "a.png", { type: "image/png" })] }); }
+  catch { return false; }
+})();
 
-const state = { items: [], running: false, nextId: 1 };
+const state = { items: [], running: false, nextId: 1, shareFrom: 0 };
 
 /* ---------- 설정 ---------- */
 function settings() {
@@ -110,6 +117,7 @@ function clearAll() {
 
 /** 결과 이름: 원래 이름 + 새 확장자. 같은 이름이 겹치면(대소문자 무시) " (2)", " (3)" … */
 function assignNames() {
+  state.shareFrom = 0;
   const used = new Set();
   for (const it of state.items) {
     if (!it.result) { it.outName = null; continue; }
@@ -248,6 +256,9 @@ function updateConvertButton() {
   btn.textContent = state.running ? "변환 중…" : todo.length ? `${todo.length}개 ${outExt().toUpperCase()}로 변환` : done.length ? "변환 완료" : "변환하기";
   $("#zip-btn").disabled = state.running || !done.length;
   $("#zip-btn").textContent = done.length ? `전체 ZIP (${done.length})` : "전체 ZIP";
+  const sb = $("#share-all-btn");
+  sb.disabled = state.running || !done.length;
+  sb.textContent = shareLabel(done.length);
   $("#file-input").disabled = state.running;
   document.querySelectorAll('.card input[type="radio"], #quality, #scrub-rgb').forEach((el) => { el.disabled = state.running; });
 }
@@ -313,15 +324,48 @@ async function share(it) {
   catch (e) { if (e.name !== "AbortError") toast("공유하지 못했습니다. 받기 버튼을 써 주세요."); }
 }
 
+/* 전체 공유: 공유 시트로 결과를 한꺼번에 넘긴다 (아이폰·아이패드 "파일에 저장"에서 폴더를 한 번만 고르면 됨).
+   한 번에 넘길 수 있는 파일 수가 정해진 브라우저(안드로이드 크롬 등)는 SHARE_BATCH 개씩 나눠서, 버튼을 다시 누르게 한다. */
+const SHARE_BATCH = 10;
+let shareBatch = null; // 이 기기에서 한 번에 넘길 수 있는 개수 (처음 공유할 때 정함)
+function shareLabel(total) {
+  if (!total) return "전체 공유";
+  if (state.shareFrom > 0 && state.shareFrom < total) return `이어서 ${state.shareFrom + 1}~${Math.min(total, state.shareFrom + (shareBatch || SHARE_BATCH))} / ${total}`;
+  return `공유·저장 (${total})`;
+}
+
+async function shareAll() {
+  const done = state.items.filter((it) => it.result);
+  if (!done.length) return;
+  if (state.shareFrom >= done.length) state.shareFrom = 0;
+  // 공유는 버튼을 누른 직후에 바로 불러야 해서, 파일 준비는 기다림 없이 한다
+  const files = done.map((it) => new File([it.result.blob], it.outName, { type: MIME[it.result.format] }));
+  if (shareBatch === null) shareBatch = navigator.canShare?.({ files }) ? files.length : SHARE_BATCH;
+  const part = files.slice(state.shareFrom, state.shareFrom + shareBatch);
+  if (!navigator.canShare?.({ files: part })) { toast("이 기기에서는 한꺼번에 공유할 수 없습니다. 전체 ZIP을 써 주세요."); return; }
+  try {
+    await navigator.share({ files: part });
+    state.shareFrom += part.length;
+    if (state.shareFrom < files.length) toast(`${state.shareFrom}개 넘김. 버튼을 다시 눌러 나머지를 넘겨 주세요.`);
+    else { state.shareFrom = 0; toast(`${files.length}개 모두 넘겼습니다.`); }
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    if (shareBatch > SHARE_BATCH) { shareBatch = SHARE_BATCH; toast(`한 번에 ${SHARE_BATCH}개씩 나눠서 넘깁니다. 다시 눌러 주세요.`); }
+    else toast("공유하지 못했습니다. 전체 ZIP을 써 주세요.");
+  } finally {
+    updateConvertButton();
+  }
+}
+
 async function downloadZip() {
   const done = state.items.filter((it) => it.result);
   if (!done.length) return;
   $("#zip-btn").disabled = true;
   try {
-    const zip = await makeZip(done.map((it) => ({ name: it.outName, blob: it.result.blob })),
+    const zip = await makeZip(done.map((it) => ({ name: `${FOLDER}/${it.outName}`, blob: it.result.blob })),
       (i, n) => setProgress(i, n, `ZIP 묶는 중 ${i} / ${n}`));
     const d = new Date(), p = (n) => String(n).padStart(2, "0");
-    download(zip, `정리된_이미지_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.zip`);
+    download(zip, `${FOLDER}_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.zip`);
     setProgress(done.length, done.length, `ZIP ${fmtSize(zip.size)} 받기 시작`);
   } catch (e) {
     toast(`ZIP을 만들지 못했습니다: ${e.message}`);
@@ -392,6 +436,12 @@ function init() {
   $("#clear-btn").addEventListener("click", clearAll);
   $("#convert-btn").addEventListener("click", convertAll);
   $("#zip-btn").addEventListener("click", downloadZip);
+  if (TOUCH && CAN_SHARE_FILES) {
+    $("#share-all-btn").hidden = false;
+    document.querySelector(".actions").classList.add("has-share");
+    document.body.classList.add("has-share");
+  }
+  $("#share-all-btn").addEventListener("click", shareAll);
   addEventListener("beforeunload", (e) => { if (state.running) { e.preventDefault(); e.returnValue = ""; } });
 
   syncOptions();

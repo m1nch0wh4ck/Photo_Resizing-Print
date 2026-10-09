@@ -129,7 +129,10 @@
     </ul>
     <h3>휴대폰에서</h3>
     <ul>
-      <li>아이폰은 하나씩 받으면 <b>파일</b> 앱의 다운로드 폴더에 저장됩니다. <b>공유</b> 버튼으로 사진 앱에 바로 저장할 수도 있습니다.</li>
+      <li>웹 페이지는 보안상 저장 위치를 정할 수 없어서, 휴대폰에서 받으면 기본 다운로드 폴더로 갑니다.</li>
+      <li><b>전체 ZIP</b>은 풀면 <code>NAImage_Cleaner</code> 폴더가 생기고 그 안에 결과가 들어 있습니다.</li>
+      <li><b>공유·저장</b> 버튼(휴대폰·태블릿)은 결과를 공유 시트로 한꺼번에 넘깁니다. 아이폰·아이패드는 <b>파일에 저장</b>에서 폴더를 한 번만 고르면 되고, <b>이미지 저장</b>을 고르면 사진 앱에 들어갑니다. 안드로이드는 한 번에 넘길 수 있는 개수가 정해져 있으면 10개씩 나눠서 넘깁니다.</li>
+      <li>아이폰·아이패드 사파리의 기본 다운로드 위치는 <b>설정 → 앱 → Safari → 다운로드</b>에서 바꿀 수 있습니다.</li>
       <li>안드로이드 크롬: 메뉴(⋮) → <b>앱 설치</b> / 아이폰 사파리: 공유 → <b>홈 화면에 추가</b>. 한 번 열어 두면 인터넷 없이도 열립니다.</li>
       <li>한 번에 너무 많이 넣으면 휴대폰 메모리가 부족할 수 있습니다. 수십 장 단위로 나눠 주세요.</li>
     </ul>
@@ -144,6 +147,7 @@
   <div class="actions">
     <button class="btn primary" id="convert-btn" type="button" disabled>변환하기</button>
     <button class="btn" id="zip-btn" type="button" disabled>전체 ZIP</button>
+    <button class="btn" id="share-all-btn" type="button" disabled hidden>전체 공유</button>
   </div>
 </div></footer>
 

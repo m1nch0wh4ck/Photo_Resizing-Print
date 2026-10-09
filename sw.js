@@ -1,6 +1,6 @@
 // 인터넷이 될 때는 항상 최신 파일을 받고, 안 될 때만 저장해 둔 파일로 연다.
 // 내용을 바꾸면 VERSION을 올려서 휴대폰의 옛 캐시를 비운다.
-const VERSION = "1";
+const VERSION = "2";
 const CACHE = `image-sanitizer-v${VERSION}`;
 const FILES = [
   "./", "./index.html", "./style.css", "./theme.js", "./app.js",
