@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "AI 이미지 정리기",
+  "short_name": "이미지 정리기",
+  "description": "AI 생성 이미지의 메타데이터와 스텔스 정보를 기기 안에서 지우고 WebP·JPEG·PNG로 일괄 변환",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f5f4",
+  "theme_color": "#0d6b63",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
